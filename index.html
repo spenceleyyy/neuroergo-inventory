@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroergo Lab · Inventory</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: #e4e4e0;
+    --border-med: #d0d0cc;
+    --text: #1a1a18;
+    --text-muted: #6b6b67;
+    --text-faint: #9b9b97;
+    --accent: #2563eb;
+    --accent-bg: #eff4ff;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 10;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .lab-name { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--text); }
+  .sidebar-logo .lab-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+  .sidebar-nav { padding: 12px 10px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; transition: all 0.1s; user-select: none;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { background: var(--accent-bg); color: var(--accent); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-section { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-faint); padding: 12px 10px 4px; text-transform: uppercase; }
+
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; }
+  .conn-status { font-size: 11px; color: var(--text-faint); display: flex; align-items: center; }
+
+  .main { margin-left: 220px; padding: 28px 32px; flex: 1; max-width: 1100px; }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--text-faint); letter-spacing: 0.04em; text-transform: uppercase; }
+  .stat-val { font-size: 26px; font-weight: 600; margin-top: 4px; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.amber { color: var(--amber); }
+  .stat-val.red { color: var(--red); }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-faint); pointer-events: none; }
+  .search-wrap input { width: 100%; padding: 8px 10px 8px 32px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); }
+  select, input { font-family: inherit; }
+  select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); cursor: pointer; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.1s; white-space: nowrap; }
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(0.98); }
+  .btn svg { width: 14px; height: 14px; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--bg); border-color: var(--border); }
+  .btn-danger { color: var(--red); border-color: #fca5a5; }
+  .btn-danger:hover { background: var(--red-bg); }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--border); }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf9; }
+  .item-name { font-weight: 500; }
+  .item-sub { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-blue { background: var(--accent-bg); color: var(--accent); }
+  .badge-gray { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* Progress bar for disposables */
+  .stock-bar { width: 80px; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 3px; }
+  .stock-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); width: min(520px, 100%); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 64px; }
+
+  /* Section divider */
+  .section-divider { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 0 0 8px; margin: 16px 0 0; border-bottom: 1px solid var(--border); }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 48px 20px; color: var(--text-faint); }
+  .empty svg { width: 36px; height: 36px; margin: 0 auto 12px; display: block; opacity: 0.3; }
+  .empty p { font-size: 13px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 48px; color: var(--text-faint); font-size: 13px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--text); color: #fff; padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Overdue highlight */
+  tr.overdue td { background: #fff8f8; }
+
+  /* Returned row */
+  tr.returned td { opacity: 0.5; }
+
+  /* Qty adjuster */
+  .qty-adj { display: flex; align-items: center; gap: 6px; }
+  .qty-adj button { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .qty-adj button:hover { background: var(--bg); }
+  .qty-adj span { font-size: 14px; font-weight: 500; min-width: 24px; text-align: center; }
+
+  /* Tab pills (for modal) */
+  .tab-pills { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius); padding: 3px; margin-bottom: 16px; }
+  .tab-pill { flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: 500; color: var(--text-muted); border-radius: 6px; cursor: pointer; border: none; background: none; }
+  .tab-pill.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .info-box { background: var(--accent-bg); border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #1e40af; margin-bottom: 14px; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="lab-name">NEUROERGO LAB</div>
+      <div class="lab-sub">Equipment Inventory</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Inventory</div>
+      <button class="nav-item active" onclick="showPage('devices')" id="nav-devices">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Devices
+      </button>
+      <button class="nav-item" onclick="showPage('disposables')" id="nav-disposables">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+        Disposables
+      </button>
+      <div class="nav-section">Activity</div>
+      <button class="nav-item" onclick="showPage('log')" id="nav-log">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
+        Checkout Log
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="conn-status"><span class="status-dot" id="conn-dot"></span><span id="conn-text">Connecting...</span></div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- DEVICES PAGE -->
+    <div id="page-devices">
+      <div class="topbar">
+        <div class="page-title">Devices & Equipment</div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openModal('checkout-modal')">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Check out
+          </button>
+          <button class="btn" onclick="openModal('add-device-modal')">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Add item
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row" id="device-stats"></div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="device-search" placeholder="Search devices..." oninput="renderDevices()">
+        </div>
+        <select id="device-cat" onchange="renderDevices()">
+          <option value="">All categories</option>
+        </select>
+        <select id="device-status" onchange="renderDevices()">
+          <option value="">All status</option>
+          <option value="available">Available</option>
+          <option value="out">Checked out</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Item</th><th>Category</th><th>Location</th><th>Qty</th><th>Available</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="device-body"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DISPOSABLES PAGE -->
+    <div id="page-disposables" style="display:none">
+      <div class="topbar">
+        <div class="page-title">Disposables & Consumables</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="openModal('add-disposable-modal')">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Add item
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row" id="disp-stats"></div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="disp-search" placeholder="Search disposables..." oninput="renderDisposables()">
+        </div>
+        <select id="disp-cat" onchange="renderDisposables()">
+          <option value="">All categories</option>
+        </select>
+        <select id="disp-status-filter" onchange="renderDisposables()">
+          <option value="">All stock levels</option>
+          <option value="ok">In stock</option>
+          <option value="low">Running low</option>
+          <option value="out">Out of stock</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Item</th><th>Category</th><th>Location</th><th>Stock</th><th>Unit</th><th>Level</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="disp-body"><tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LOG PAGE -->
+    <div id="page-log" style="display:none">
+      <div class="topbar">
+        <div class="page-title">Checkout Log</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="exportCSV()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export CSV
+          </button>
+          <button class="btn btn-primary" onclick="openModal('checkout-modal')">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Check out
+          </button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="log-search" placeholder="Search by item, borrower, project..." oninput="renderLog()">
+        </div>
+        <select id="log-status-filter" onchange="renderLog()">
+          <option value="">All</option>
+          <option value="out">Currently out</option>
+          <option value="overdue">Overdue</option>
+          <option value="returned">Returned</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Item</th><th>Borrower</th><th>Project</th><th>Qty</th><th>Checked out</th><th>Due back</th><th>Duration</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="log-body"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- Checkout Modal -->
+<div class="modal-overlay" id="checkout-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Check out equipment</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('checkout-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">Fill in all required fields. The item's available quantity will update automatically for all lab members.</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Equipment *</label>
+          <select id="co-item" onchange="updateQtyMax()"><option value="">Select item...</option></select>
+        </div>
+        <div class="form-group">
+          <label>Quantity *</label>
+          <div class="qty-adj">
+            <button onclick="adjQty(-1)">−</button>
+            <span id="co-qty-display">1</span>
+            <button onclick="adjQty(1)">+</button>
+            <input type="hidden" id="co-qty" value="1">
+          </div>
+          <span id="co-qty-hint" style="font-size:11px;color:var(--text-faint)"></span>
+        </div>
+        <div class="form-group">
+          <label>Borrower name *</label>
+          <input type="text" id="co-name" placeholder="e.g. Rob Lundberg">
+        </div>
+        <div class="form-group">
+          <label>Role / position</label>
+          <input type="text" id="co-role" placeholder="e.g. PhD student">
+        </div>
+        <div class="form-group full">
+          <label>Project / purpose *</label>
+          <input type="text" id="co-project" placeholder="e.g. CHIRP Study 5">
+        </div>
+        <div class="form-group">
+          <label>Expected return date</label>
+          <input type="date" id="co-return">
+        </div>
+        <div class="form-group">
+          <label>Duration</label>
+          <input type="text" id="co-duration" placeholder="e.g. 2 weeks">
+        </div>
+        <div class="form-group full">
+          <label>Destination / taking to</label>
+          <input type="text" id="co-dest" placeholder="e.g. Engineering Hall 203">
+        </div>
+        <div class="form-group full">
+          <label>Notes (condition, accessories included, etc.)</label>
+          <textarea id="co-notes" placeholder="Any relevant notes..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('checkout-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCheckout()">Check out →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Return Modal -->
+<div class="modal-overlay" id="return-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Return equipment</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('return-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="return-summary" style="background:var(--bg);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;"></div>
+      <div class="form-group">
+        <label>Return condition / notes</label>
+        <textarea id="return-notes" placeholder="e.g. Returned in good condition. Battery slightly low."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('return-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmReturn()">Confirm return</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Device Modal -->
+<div class="modal-overlay" id="add-device-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add device / equipment</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('add-device-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Item name *</label>
+          <input type="text" id="ad-name" placeholder="e.g. NIRSport2">
+        </div>
+        <div class="form-group">
+          <label>Vendor / Manufacturer</label>
+          <input type="text" id="ad-vendor" placeholder="e.g. NIRx">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="ad-cat" placeholder="e.g. fNIRS" list="cat-list">
+          <datalist id="cat-list">
+            <option>XR</option><option>EEG</option><option>fNIRS</option><option>EMG</option>
+            <option>Eye Tracking</option><option>Neuro Stim</option><option>Exoskeleton</option>
+            <option>Motion Capture</option><option>Biomechanics</option><option>Accessory</option>
+            <option>General Purpose Tools</option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Quantity *</label>
+          <input type="number" id="ad-qty" value="1" min="1">
+        </div>
+        <div class="form-group full">
+          <label>Location</label>
+          <input type="text" id="ad-loc" placeholder="e.g. ME 4126; Cupboard L">
+        </div>
+        <div class="form-group">
+          <label>Lab POC</label>
+          <input type="text" id="ad-poc" placeholder="e.g. Ronak Mohanty">
+        </div>
+        <div class="form-group">
+          <label>Projects</label>
+          <input type="text" id="ad-projects" placeholder="e.g. CHIRP, LEARNER">
+        </div>
+        <div class="form-group full">
+          <label>Notes</label>
+          <textarea id="ad-notes" placeholder="Serial number, license info, etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('add-device-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddDevice()">Add device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Disposable Modal -->
+<div class="modal-overlay" id="add-disposable-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add disposable / consumable</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('add-disposable-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Item name *</label>
+          <input type="text" id="dis-name" placeholder="e.g. Signa Gel 60g">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="dis-cat" placeholder="e.g. EEG">
+        </div>
+        <div class="form-group">
+          <label>Vendor</label>
+          <input type="text" id="dis-vendor" placeholder="e.g. Fisher Scientific">
+        </div>
+        <div class="form-group">
+          <label>Current quantity *</label>
+          <input type="number" id="dis-qty" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Unit</label>
+          <input type="text" id="dis-unit" placeholder="e.g. Bottle, Syringe, Pack">
+        </div>
+        <div class="form-group">
+          <label>Low stock threshold</label>
+          <input type="number" id="dis-low" value="10" min="0">
+        </div>
+        <div class="form-group full">
+          <label>Location</label>
+          <input type="text" id="dis-loc" placeholder="e.g. ME 4126; Cupboard L">
+        </div>
+        <div class="form-group">
+          <label>Lab POC</label>
+          <input type="text" id="dis-poc" placeholder="e.g. Rob">
+        </div>
+        <div class="form-group">
+          <label>ShopUW available?</label>
+          <select id="dis-shopuw"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('add-disposable-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddDisposable()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adjust Stock Modal -->
+<div class="modal-overlay" id="stock-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="stock-modal-title">Adjust stock</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('stock-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="stock-item-info" style="background:var(--bg);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;"></div>
+      <div class="tab-pills">
+        <button class="tab-pill active" id="stock-tab-add" onclick="setStockTab('add')">Restock / add</button>
+        <button class="tab-pill" id="stock-tab-use" onclick="setStockTab('use')">Record use</button>
+        <button class="tab-pill" id="stock-tab-set" onclick="setStockTab('set')">Set exact qty</button>
+      </div>
+      <div class="form-group">
+        <label id="stock-qty-label">Quantity to add</label>
+        <input type="number" id="stock-qty-input" value="1" min="0">
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Notes</label>
+        <input type="text" id="stock-notes" placeholder="e.g. Restocked from ShopUW order #123">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('stock-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmStockAdjust()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap"><div class="toast" id="toast"></div></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBgmsYSkDYQFtYvXWQaC0c6t-H0nuE3t78",
+  authDomain: "neuroergo-lab-inventory.firebaseapp.com",
+  projectId: "neuroergo-lab-inventory",
+  storageBucket: "neuroergo-lab-inventory.firebasestorage.app",
+  messagingSenderId: "68337345262",
+  appId: "1:68337345262:web:889ce29c17130c30fb49ff"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- Seed data (only runs once if Firestore is empty) ---
+const SEED_DEVICES = [
+  {name:"Quest 3",vendor:"Meta",qty:1,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Quest 3 Battery Head Strap",vendor:"Meta",qty:1,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Quest 3 Facial Interface",vendor:"Meta",qty:1,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"GENERAL",notes:""},
+  {name:"Quest Link Cable",vendor:"Meta",qty:1,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Quest Pro Controller Pair",vendor:"Meta",qty:1,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Quest 3 Carry Case",vendor:"Meta",qty:1,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"GENERAL",notes:""},
+  {name:"HoloLens 2",vendor:"Microsoft",qty:2,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"TactSuit X40",vendor:"bHaptics",qty:1,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"",notes:""},
+  {name:"Tactos",vendor:"bHaptics",qty:1,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"",notes:""},
+  {name:"VR Replacement Face Pad",vendor:"Kiwi",qty:3,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"GENERAL",notes:""},
+  {name:"Tripod Large",vendor:"Fovitec",qty:2,location:"ME 4126",category:"Accessory",poc:"",projects:"",notes:""},
+  {name:"Vive VR Headset",vendor:"HTC",qty:2,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Vive Pro VR Headset",vendor:"HTC",qty:1,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Vive Tracker",vendor:"HTC",qty:6,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Vive Wireless Adapter",vendor:"HTC",qty:2,location:"ME 4126",category:"Accessory",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Vibration LRA Motor VG1040003D",vendor:"Vybronics",qty:5,location:"ME 4126",category:"XR",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Arduino Starter Kit",vendor:"Arduino",qty:1,location:"ME 4126",category:"Electronics",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Arduino Sensor Kit",vendor:"Arduino",qty:1,location:"ME 4126",category:"Electronics",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"Arduino UNO R3 Board",vendor:"Arduino",qty:1,location:"ME 4126",category:"Electronics",poc:"Ronak Mohanty",projects:"LEARNER, iPAL",notes:""},
+  {name:"ShoulderX Exoskeleton",vendor:"SuitX",qty:2,location:"ME 4126",category:"Exoskeleton",poc:"",projects:"",notes:""},
+  {name:"Ultium EMG",vendor:"Noraxon",qty:3,location:"ME 4126",category:"EMG",poc:"",projects:"",notes:""},
+  {name:"ECG & Activity Data Logger",vendor:"Actiheart",qty:1,location:"ME 4126",category:"Physio",poc:"",projects:"",notes:""},
+  {name:"Precision Tool Kit",vendor:"Apollo",qty:1,location:"ME 4126",category:"General Purpose Tools",poc:"",projects:"GENERAL",notes:""},
+  {name:"Pro Tech Tool Kit",vendor:"iFixit",qty:1,location:"ME 4126",category:"General Purpose Tools",poc:"",projects:"GENERAL",notes:""},
+  {name:"Xsens MVN",vendor:"Xsens",qty:2,location:"ME 4126",category:"Motion Capture",poc:"",projects:"",notes:""},
+  {name:"Apex2 Exosuit",vendor:"Herowear",qty:1,location:"ME 4126",category:"Exoskeleton",poc:"",projects:"",notes:"Multiple sizes"},
+  {name:"NIRSport2",vendor:"NIRx",qty:2,location:"ME 4126",category:"fNIRS",poc:"",projects:"",notes:"Has additional peripherals"},
+  {name:"GVS Device",vendor:"Soterix Medical",qty:1,location:"ME 4126",category:"Neuro Stim",poc:"",projects:"",notes:"Has additional peripherals"},
+  {name:"HD-tES MxN 33/65",vendor:"Soterix Medical",qty:1,location:"ME 4126",category:"Neuro Stim",poc:"",projects:"",notes:""},
+  {name:"1x1 tDCS",vendor:"Soterix Medical",qty:1,location:"ME 4126",category:"Neuro Stim",poc:"",projects:"",notes:"Has additional peripherals"},
+  {name:"Electrode Impedance Meter",vendor:"NASA Property",qty:1,location:"ME 4126",category:"EEG",poc:"",projects:"",notes:""},
+  {name:"Checktrode Electrode Tester",vendor:"UFI",qty:1,location:"ME 4126",category:"EEG",poc:"",projects:"",notes:""},
+  {name:"MultiAxis Force Plate",vendor:"AMTI",qty:1,location:"ME 4126",category:"Biomechanics",poc:"",projects:"",notes:"Model # TBD"},
+  {name:"Tobii Pro Glasses 3",vendor:"Tobii",qty:1,location:"ME 4126",category:"Eye Tracking",poc:"",projects:"LEARNER, iPAL",notes:""},
+  {name:"Tobii Pro Spark",vendor:"Tobii",qty:1,location:"ME 4126",category:"Eye Tracking",poc:"",projects:"",notes:""},
+];
+
+const SEED_DISPOSABLES = [
+  {name:"10 mL Syringes",vendor:"BD",category:"EEG",qty:350,unit:"Syringe",lowThreshold:50,location:"ME 4126 / M3X",poc:"Rob",shopuw:"yes",notes:""},
+  {name:"Blunt Tip Syringes",vendor:"Fisher Scientific",category:"EEG",qty:1000,unit:"Syringe tip",lowThreshold:100,location:"ME 4126 / M3X",poc:"Rob",shopuw:"yes",notes:""},
+  {name:"Signa Gel 60g",vendor:"Fisher Scientific",category:"EEG",qty:13,unit:"Bottle",lowThreshold:3,location:"ME 4126 / M3X",poc:"Rob",shopuw:"yes",notes:""},
+  {name:"Signa Gel 250g",vendor:"Fisher Scientific",category:"EEG",qty:1,unit:"Bottle",lowThreshold:1,location:"M3X",poc:"Rob",shopuw:"",notes:"Running low"},
+  {name:"3M Electrodes",vendor:"3M",category:"EMG",qty:1,unit:"Pack",lowThreshold:2,location:"ME 4126",poc:"",shopuw:"",notes:""},
+];
+
+async function seedIfEmpty() {
+  const snap = await getDoc(doc(db, '_meta', 'seeded'));
+  if (snap.exists()) return;
+  for (const d of SEED_DEVICES) await addDoc(collection(db, 'devices'), {...d, createdAt: serverTimestamp()});
+  for (const d of SEED_DISPOSABLES) await addDoc(collection(db, 'disposables'), {...d, createdAt: serverTimestamp()});
+  await setDoc(doc(db, '_meta', 'seeded'), {at: serverTimestamp()});
+}
+
+// --- State ---
+window._devices = [];
+window._disposables = [];
+window._loans = [];
+window._currentReturnId = null;
+window._currentStockId = null;
+window._stockTab = 'add';
+window._coQty = 1;
+window._coQtyMax = 99;
+
+// --- Connection status ---
+document.getElementById('conn-dot').style.background = '#d97706';
+document.getElementById('conn-text').textContent = 'Connecting...';
+
+seedIfEmpty().then(() => {
+  // Listen to devices
+  onSnapshot(query(collection(db, 'devices'), orderBy('name')), snap => {
+    window._devices = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    document.getElementById('conn-dot').style.background = '#16a34a';
+    document.getElementById('conn-text').textContent = 'Live';
+    populateCategoryFilters();
+    renderDevices();
+    renderDeviceStats();
+    populateCheckoutSelect();
+  });
+
+  // Listen to disposables
+  onSnapshot(query(collection(db, 'disposables'), orderBy('name')), snap => {
+    window._disposables = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderDisposables();
+    renderDispStats();
+    populateDispCategoryFilter();
+  });
+
+  // Listen to loans
+  onSnapshot(query(collection(db, 'loans'), orderBy('checkedOutAt', 'desc')), snap => {
+    window._loans = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderDevices();
+    renderDeviceStats();
+    renderLog();
+    populateCheckoutSelect();
+  });
+}).catch(e => {
+  document.getElementById('conn-dot').style.background = '#dc2626';
+  document.getElementById('conn-text').textContent = 'Offline';
+  console.error(e);
+});
+
+// --- Helpers ---
+function checkedOutQty(deviceId) {
+  return window._loans.filter(l => l.deviceId === deviceId && !l.returnedAt).reduce((s,l) => s + (l.qty||1), 0);
+}
+function availQty(device) { return (device.qty||1) - checkedOutQty(device.id); }
+
+// --- Device stats ---
+window.renderDeviceStats = function() {
+  const total = window._devices.length;
+  const avail = window._devices.filter(d => availQty(d) === d.qty).length;
+  const partOut = window._devices.filter(d => checkedOutQty(d.id) > 0).length;
+  const activeLoans = window._loans.filter(l => !l.returnedAt).length;
+  document.getElementById('device-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total items</div><div class="stat-val">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Fully available</div><div class="stat-val green">${avail}</div></div>
+    <div class="stat-card"><div class="stat-label">Items out</div><div class="stat-val amber">${partOut}</div></div>
+    <div class="stat-card"><div class="stat-label">Active loans</div><div class="stat-val">${activeLoans}</div></div>
+  `;
+}
+
+window.renderDispStats = function() {
+  const total = window._disposables.length;
+  const out = window._disposables.filter(d => (d.qty||0) === 0).length;
+  const low = window._disposables.filter(d => (d.qty||0) > 0 && (d.qty||0) <= (d.lowThreshold||10)).length;
+  const ok = total - out - low;
+  document.getElementById('disp-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total items</div><div class="stat-val">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">In stock</div><div class="stat-val green">${ok}</div></div>
+    <div class="stat-card"><div class="stat-label">Running low</div><div class="stat-val amber">${low}</div></div>
+    <div class="stat-card"><div class="stat-label">Out of stock</div><div class="stat-val red">${out}</div></div>
+  `;
+}
+
+// --- Render devices ---
+window.renderDevices = function() {
+  const q = (document.getElementById('device-search')||{value:''}).value.toLowerCase();
+  const cat = (document.getElementById('device-cat')||{value:''}).value;
+  const st = (document.getElementById('device-status')||{value:''}).value;
+  const items = window._devices.filter(e => {
+    if (q && !e.name.toLowerCase().includes(q) && !(e.vendor||'').toLowerCase().includes(q) && !(e.category||'').toLowerCase().includes(q)) return false;
+    if (cat && e.category !== cat) return false;
+    const a = availQty(e);
+    if (st === 'available' && a === 0) return false;
+    if (st === 'out' && a >= e.qty) return false;
+    return true;
+  });
+  const body = document.getElementById('device-body');
+  if (!items.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No items match your filters.</p></div></td></tr>'; return; }
+  body.innerHTML = items.map(e => {
+    const avail = availQty(e);
+    const out = checkedOutQty(e.id);
+    let badge;
+    if (avail === 0) badge = '<span class="badge badge-red">All out</span>';
+    else if (out > 0) badge = `<span class="badge badge-amber">${avail}/${e.qty} avail</span>`;
+    else badge = '<span class="badge badge-green">Available</span>';
+    return `<tr>
+      <td><div class="item-name">${e.name}</div><div class="item-sub">${e.vendor||'—'}</div></td>
+      <td><span class="badge badge-gray">${e.category||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${e.location||'—'}</td>
+      <td>${e.qty}</td>
+      <td><strong>${avail}</strong></td>
+      <td>${badge}</td>
+      <td><button class="btn btn-sm" onclick="quickCheckout('${e.id}')">Check out</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// --- Render disposables ---
+window.renderDisposables = function() {
+  const q = (document.getElementById('disp-search')||{value:''}).value.toLowerCase();
+  const cat = (document.getElementById('disp-cat')||{value:''}).value;
+  const sf = (document.getElementById('disp-status-filter')||{value:''}).value;
+  const items = window._disposables.filter(d => {
+    if (q && !d.name.toLowerCase().includes(q) && !(d.vendor||'').toLowerCase().includes(q) && !(d.category||'').toLowerCase().includes(q)) return false;
+    if (cat && d.category !== cat) return false;
+    const pct = (d.qty||0) / Math.max(d.lowThreshold*3, 10);
+    if (sf === 'ok' && ((d.qty||0) === 0 || (d.qty||0) <= (d.lowThreshold||10))) return false;
+    if (sf === 'low' && !((d.qty||0) > 0 && (d.qty||0) <= (d.lowThreshold||10))) return false;
+    if (sf === 'out' && (d.qty||0) > 0) return false;
+    return true;
+  });
+  const body = document.getElementById('disp-body');
+  if (!items.length) { body.innerHTML = '<tr><td colspan="8"><div class="empty"><p>No items match your filters.</p></div></td></tr>'; return; }
+  body.innerHTML = items.map(d => {
+    const qty = d.qty||0;
+    const low = d.lowThreshold||10;
+    const max = Math.max(low*3, qty, 10);
+    const pct = Math.min(100, Math.round(qty/max*100));
+    let badge, fillColor;
+    if (qty === 0) { badge='<span class="badge badge-red">Out of stock</span>'; fillColor='var(--red)'; }
+    else if (qty <= low) { badge='<span class="badge badge-amber">Running low</span>'; fillColor='var(--amber)'; }
+    else { badge='<span class="badge badge-green">In stock</span>'; fillColor='var(--green)'; }
+    return `<tr>
+      <td><div class="item-name">${d.name}</div><div class="item-sub">${d.vendor||'—'}${d.shopuw==='yes'?' · ShopUW ✓':''}</div></td>
+      <td><span class="badge badge-gray">${d.category||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.location||'—'}</td>
+      <td><strong>${qty}</strong></td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.unit||'units'}</td>
+      <td><div class="stock-bar"><div class="stock-fill" style="width:${pct}%;background:${fillColor}"></div></div></td>
+      <td>${badge}</td>
+      <td><button class="btn btn-sm" onclick="openStockModal('${d.id}')">Adjust</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// --- Render log ---
+window.renderLog = function() {
+  const q = (document.getElementById('log-search')||{value:''}).value.toLowerCase();
+  const sf = (document.getElementById('log-status-filter')||{value:''}).value;
+  const now = new Date();
+  let items = [...window._loans];
+  if (q) items = items.filter(l => l.itemName.toLowerCase().includes(q) || l.borrower.toLowerCase().includes(q) || (l.project||'').toLowerCase().includes(q));
+  if (sf === 'out') items = items.filter(l => !l.returnedAt);
+  if (sf === 'returned') items = items.filter(l => l.returnedAt);
+  if (sf === 'overdue') items = items.filter(l => !l.returnedAt && l.returnDate && new Date(l.returnDate) < now);
+  const body = document.getElementById('log-body');
+  if (!items.length) { body.innerHTML = '<tr><td colspan="9"><div class="empty"><p>No records found.</p></div></td></tr>'; return; }
+  body.innerHTML = items.map(l => {
+    const outDate = l.checkedOutAt?.toDate ? l.checkedOutAt.toDate() : new Date(l.checkedOutAt||Date.now());
+    const overdue = !l.returnedAt && l.returnDate && new Date(l.returnDate) < now;
+    let badge;
+    if (l.returnedAt) badge = '<span class="badge badge-green">Returned</span>';
+    else if (overdue) badge = '<span class="badge badge-red">Overdue</span>';
+    else badge = '<span class="badge badge-amber">Out</span>';
+    const retBtn = !l.returnedAt ? `<button class="btn btn-sm" onclick="openReturnModal('${l.id}')">Return</button>` : '';
+    const ds = outDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    return `<tr class="${l.returnedAt?'returned':''} ${overdue?'overdue':''}">
+      <td><div class="item-name" style="font-size:13px">${l.itemName}</div></td>
+      <td>${l.borrower}<br><span style="font-size:11px;color:var(--text-faint)">${l.role||''}</span></td>
+      <td style="font-size:12px">${l.project||'—'}</td>
+      <td>${l.qty}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${ds}</td>
+      <td style="font-size:12px;color:${overdue?'var(--red)':'var(--text-muted)'}">${l.returnDate||'—'}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${l.duration||'—'}</td>
+      <td>${badge}</td>
+      <td>${retBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// --- Category filters ---
+function populateCategoryFilters() {
+  const cats = [...new Set(window._devices.map(d => d.category).filter(Boolean))].sort();
+  const sel = document.getElementById('device-cat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option ${c===cur?'selected':''}>${c}</option>`).join('');
+}
+function populateDispCategoryFilter() {
+  const cats = [...new Set(window._disposables.map(d => d.category).filter(Boolean))].sort();
+  const sel = document.getElementById('disp-cat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option ${c===cur?'selected':''}>${c}</option>`).join('');
+}
+
+// --- Checkout ---
+window.populateCheckoutSelect = function() {
+  const sel = document.getElementById('co-item');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Select item...</option>' + window._devices.map(e => {
+    const a = availQty(e);
+    return `<option value="${e.id}" ${a===0?'disabled':''} ${e.id===prev?'selected':''}>${e.name} (${a} avail)</option>`;
+  }).join('');
+  updateQtyMax();
+}
+
+window.updateQtyMax = function() {
+  const id = document.getElementById('co-item')?.value;
+  const device = window._devices.find(d => d.id === id);
+  const max = device ? availQty(device) : 1;
+  window._coQtyMax = max;
+  window._coQty = Math.min(window._coQty, max);
+  if (window._coQty < 1) window._coQty = 1;
+  document.getElementById('co-qty-display').textContent = window._coQty;
+  document.getElementById('co-qty').value = window._coQty;
+  document.getElementById('co-qty-hint').textContent = device ? `Max: ${max}` : '';
+}
+
+window.adjQty = function(delta) {
+  window._coQty = Math.max(1, Math.min(window._coQtyMax, window._coQty + delta));
+  document.getElementById('co-qty-display').textContent = window._coQty;
+  document.getElementById('co-qty').value = window._coQty;
+}
+
+window.quickCheckout = function(deviceId) {
+  openModal('checkout-modal');
+  setTimeout(() => {
+    document.getElementById('co-item').value = deviceId;
+    updateQtyMax();
+    document.getElementById('co-name').focus();
+  }, 50);
+}
+
+window.submitCheckout = async function() {
+  const itemId = document.getElementById('co-item').value;
+  const name = document.getElementById('co-name').value.trim();
+  const qty = parseInt(document.getElementById('co-qty').value)||1;
+  const project = document.getElementById('co-project').value.trim();
+  if (!itemId || !name || !project) { showToast('Please fill in equipment, borrower, and project.'); return; }
+  const device = window._devices.find(d => d.id === itemId);
+  if (!device || qty > availQty(device)) { showToast('Not enough units available.'); return; }
+  await addDoc(collection(db, 'loans'), {
+    deviceId: itemId,
+    itemName: device.name,
+    qty, borrower: name,
+    role: document.getElementById('co-role').value.trim(),
+    project,
+    returnDate: document.getElementById('co-return').value||'',
+    duration: document.getElementById('co-duration').value.trim(),
+    destination: document.getElementById('co-dest').value.trim(),
+    notes: document.getElementById('co-notes').value.trim(),
+    checkedOutAt: serverTimestamp(),
+    returnedAt: null, returnNotes: ''
+  });
+  closeModal('checkout-modal');
+  showToast(`✓ ${device.name} checked out to ${name}`);
+  ['co-name','co-role','co-project','co-return','co-duration','co-dest','co-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('co-item').value='';
+  window._coQty=1;
+  document.getElementById('co-qty-display').textContent='1';
+  showPage('log');
+}
+
+// --- Return ---
+window.openReturnModal = function(loanId) {
+  const loan = window._loans.find(l => l.id === loanId);
+  window._currentReturnId = loanId;
+  document.getElementById('return-summary').innerHTML = `<strong>${loan.itemName}</strong><br>Borrower: ${loan.borrower} · Qty: ${loan.qty} · Project: ${loan.project||'—'}`;
+  document.getElementById('return-notes').value = '';
+  openModal('return-modal');
+}
+window.confirmReturn = async function() {
+  const loan = window._loans.find(l => l.id === window._currentReturnId);
+  await updateDoc(doc(db, 'loans', window._currentReturnId), {
+    returnedAt: serverTimestamp(),
+    returnNotes: document.getElementById('return-notes').value.trim()
+  });
+  closeModal('return-modal');
+  showToast(`✓ ${loan.itemName} returned`);
+}
+
+// --- Add device ---
+window.submitAddDevice = async function() {
+  const name = document.getElementById('ad-name').value.trim();
+  const qty = parseInt(document.getElementById('ad-qty').value)||1;
+  if (!name) { showToast('Item name is required.'); return; }
+  await addDoc(collection(db, 'devices'), {
+    name, vendor: document.getElementById('ad-vendor').value.trim(),
+    category: document.getElementById('ad-cat').value.trim(),
+    qty, location: document.getElementById('ad-loc').value.trim(),
+    poc: document.getElementById('ad-poc').value.trim(),
+    projects: document.getElementById('ad-projects').value.trim(),
+    notes: document.getElementById('ad-notes').value.trim(),
+    createdAt: serverTimestamp()
+  });
+  closeModal('add-device-modal');
+  showToast(`✓ ${name} added`);
+  ['ad-name','ad-vendor','ad-cat','ad-loc','ad-poc','ad-projects','ad-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('ad-qty').value='1';
+}
+
+// --- Add disposable ---
+window.submitAddDisposable = async function() {
+  const name = document.getElementById('dis-name').value.trim();
+  if (!name) { showToast('Item name is required.'); return; }
+  await addDoc(collection(db, 'disposables'), {
+    name, vendor: document.getElementById('dis-vendor').value.trim(),
+    category: document.getElementById('dis-cat').value.trim(),
+    qty: parseInt(document.getElementById('dis-qty').value)||0,
+    unit: document.getElementById('dis-unit').value.trim(),
+    lowThreshold: parseInt(document.getElementById('dis-low').value)||10,
+    location: document.getElementById('dis-loc').value.trim(),
+    poc: document.getElementById('dis-poc').value.trim(),
+    shopuw: document.getElementById('dis-shopuw').value,
+    notes:'', createdAt: serverTimestamp()
+  });
+  closeModal('add-disposable-modal');
+  showToast(`✓ ${name} added`);
+  ['dis-name','dis-vendor','dis-cat','dis-unit','dis-loc','dis-poc'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('dis-qty').value='0';
+  document.getElementById('dis-low').value='10';
+}
+
+// --- Stock adjust ---
+window.openStockModal = function(dispId) {
+  window._currentStockId = dispId;
+  window._stockTab = 'add';
+  const d = window._disposables.find(x => x.id === dispId);
+  document.getElementById('stock-modal-title').textContent = `Adjust stock — ${d.name}`;
+  document.getElementById('stock-item-info').innerHTML = `<strong>${d.name}</strong> · Current qty: <strong>${d.qty||0} ${d.unit||'units'}</strong> · Low threshold: ${d.lowThreshold||10}`;
+  document.getElementById('stock-qty-input').value = 1;
+  document.getElementById('stock-notes').value = '';
+  setStockTab('add');
+  openModal('stock-modal');
+}
+
+window.setStockTab = function(tab) {
+  window._stockTab = tab;
+  ['add','use','set'].forEach(t => {
+    document.getElementById('stock-tab-'+t).classList.toggle('active', t===tab);
+  });
+  const labels = {add:'Quantity to add', use:'Quantity used / consumed', set:'Set exact quantity'};
+  document.getElementById('stock-qty-label').textContent = labels[tab];
+}
+
+window.confirmStockAdjust = async function() {
+  const d = window._disposables.find(x => x.id === window._currentStockId);
+  const val = parseInt(document.getElementById('stock-qty-input').value)||0;
+  let newQty = d.qty||0;
+  if (window._stockTab === 'add') newQty += val;
+  else if (window._stockTab === 'use') newQty = Math.max(0, newQty - val);
+  else newQty = val;
+  await updateDoc(doc(db, 'disposables', window._currentStockId), { qty: newQty });
+  closeModal('stock-modal');
+  showToast(`✓ ${d.name} updated to ${newQty} ${d.unit||'units'}`);
+}
+
+// --- Export CSV ---
+window.exportCSV = function() {
+  const headers = ['Item','Borrower','Role','Project','Qty','Destination','Duration','Checked Out','Expected Return','Returned','Return Notes'];
+  const rows = window._loans.map(l => {
+    const outDate = l.checkedOutAt?.toDate ? l.checkedOutAt.toDate().toLocaleString() : '';
+    const retDate = l.returnedAt?.toDate ? l.returnedAt.toDate().toLocaleString() : '';
+    return [l.itemName,l.borrower,l.role||'',l.project||'',l.qty,l.destination||'',l.duration||'',outDate,l.returnDate||'',retDate,l.returnNotes||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [headers.join(','),...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'neuroergo_checkout_log_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// --- UI helpers ---
+window.showPage = function(page) {
+  ['devices','disposables','log'].forEach(p => {
+    document.getElementById('page-'+p).style.display = p===page?'block':'none';
+    document.getElementById('nav-'+p).classList.toggle('active', p===page);
+  });
+  if (page==='log') renderLog();
+}
+window.openModal = function(id) { document.getElementById(id).classList.add('open'); }
+window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); }
+
+window.showToast = function(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
